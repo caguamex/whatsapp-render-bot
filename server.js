@@ -9,7 +9,16 @@ app.use(bodyParser.json());
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        executablePath: '/usr/bin/chromium',
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-gpu'
+        ]
     }
 });
 
@@ -23,6 +32,10 @@ client.on('qr', (qr) => {
 client.on('ready', () => {
     console.log('WhatsApp ready!');
     isReady = true;
+});
+
+client.on('authenticated', () => {
+    console.log('Authenticated!');
 });
 
 client.initialize();
@@ -62,6 +75,7 @@ app.post('/send', async (req, res) => {
         
         res.status(404).json({ error: 'Contact not found' });
     } catch (error) {
+        console.error('Error:', error);
         res.status(500).json({ error: error.message });
     }
 });
