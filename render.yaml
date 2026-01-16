@@ -1,0 +1,8 @@
+﻿services:
+  - type: web
+    name: whatsapp-bot
+    env: node
+    buildCommand: |
+      npm install
+      npx puppeteer browsers install chrome
+    startCommand: npm start
