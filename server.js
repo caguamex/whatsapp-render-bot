@@ -14,8 +14,14 @@ app.use(bodyParser.json());
         authStrategy: new LocalAuth(),
         puppeteer: {
             executablePath,
-            args: chromium.args,
-            headless: chromium.headless
+            args: [
+                ...chromium.args,
+                '--disable-background-timer-throttling',
+                '--disable-renderer-backgrounding',
+                '--disable-backgrounding-occluded-windows'
+            ],
+            headless: chromium.headless,
+            protocolTimeout: 180000 // 3 minutos
         }
     });
 
@@ -35,7 +41,10 @@ app.use(bodyParser.json());
         console.log('Authenticated!');
     });
 
-    client.initialize();
+    client.initialize().catch(err => {
+        console.error('Init error:', err);
+        process.exit(1);
+    });
 
     app.get('/', (req, res) => {
         res.json({ status: 'running', ready: isReady });
