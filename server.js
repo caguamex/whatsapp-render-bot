@@ -14,22 +14,19 @@ app.use(bodyParser.json());
         authStrategy: new LocalAuth(),
         puppeteer: {
             executablePath,
-            args: [
-                ...chromium.args,
-                '--disable-background-timer-throttling',
-                '--disable-renderer-backgrounding',
-                '--disable-backgrounding-occluded-windows'
-            ],
+            args: chromium.args,
             headless: chromium.headless,
-            protocolTimeout: 180000 // 3 minutos
+            protocolTimeout: 180000
         }
     });
 
     let isReady = false;
+    let currentQR = '';
 
     client.on('qr', (qr) => {
-        console.log('QR Code:');
-        qrcode.generate(qr, {small: true});
+        currentQR = qr;
+        console.log('QR GENERADO - Visit /qr to see it');
+        qrcode.generate(qr, {small: true}); // small: true = más pequeño
     });
 
     client.on('ready', () => {
@@ -48,6 +45,14 @@ app.use(bodyParser.json());
 
     app.get('/', (req, res) => {
         res.json({ status: 'running', ready: isReady });
+    });
+
+    app.get('/qr', (req, res) => {
+        if (currentQR) {
+            res.send(`<html><body><h1>Scan this QR with WhatsApp:</h1><pre>${currentQR}</pre></body></html>`);
+        } else {
+            res.send('<html><body><h1>No QR available - already authenticated or generating...</h1></body></html>');
+        }
     });
 
     app.get('/health', (req, res) => {
@@ -89,5 +94,6 @@ app.use(bodyParser.json());
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`Server on port ${PORT}`);
+        console.log(`Visit https://whatsapp-render-bot-dme5.onrender.com/qr to see QR code`);
     });
 })();
