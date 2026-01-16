@@ -1,5 +1,6 @@
 ﻿const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
+const qrcodeTerminal = require('qrcode-terminal');
+const QRCode = require('qrcode');
 const express = require('express');
 const bodyParser = require('body-parser');
 const chromium = require('@sparticuz/chromium');
@@ -21,17 +22,24 @@ app.use(bodyParser.json());
     });
 
     let isReady = false;
-    let currentQR = '';
+    let qrImage = null;
 
-    client.on('qr', (qr) => {
-        currentQR = qr;
-        console.log('QR GENERADO - Visit /qr to see it');
-        qrcode.generate(qr, {small: true}); // small: true = más pequeño
+    client.on('qr', async (qr) => {
+        console.log('QR Generated! Visit /qr to see image');
+        qrcodeTerminal.generate(qr, {small: true});
+        
+        // Generar imagen QR
+        try {
+            qrImage = await QRCode.toDataURL(qr);
+        } catch (err) {
+            console.error('QR image error:', err);
+        }
     });
 
     client.on('ready', () => {
         console.log('WhatsApp ready!');
         isReady = true;
+        qrImage = null;
     });
 
     client.on('authenticated', () => {
@@ -48,10 +56,20 @@ app.use(bodyParser.json());
     });
 
     app.get('/qr', (req, res) => {
-        if (currentQR) {
-            res.send(`<html><body><h1>Scan this QR with WhatsApp:</h1><pre>${currentQR}</pre></body></html>`);
+        if (qrImage) {
+            res.send(`
+                <html>
+                <head><title>WhatsApp QR Code</title></head>
+                <body style="display:flex;justify-content:center;align-items:center;height:100vh;margin:0;flex-direction:column;">
+                    <h1>Scan with WhatsApp</h1>
+                    <img src="${qrImage}" style="width:400px;height:400px;"/>
+                </body>
+                </html>
+            `);
+        } else if (isReady) {
+            res.send('<html><body><h1>Already authenticated! Bot is ready.</h1></body></html>');
         } else {
-            res.send('<html><body><h1>No QR available - already authenticated or generating...</h1></body></html>');
+            res.send('<html><body><h1>Generating QR code... Refresh in 5 seconds</h1></body></html>');
         }
     });
 
@@ -94,6 +112,6 @@ app.use(bodyParser.json());
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`Server on port ${PORT}`);
-        console.log(`Visit https://whatsapp-render-bot-dme5.onrender.com/qr to see QR code`);
+        console.log(`Visit /qr for QR image`);
     });
 })();
